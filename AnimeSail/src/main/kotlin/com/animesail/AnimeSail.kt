@@ -5,12 +5,18 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.mvvm.safeApiCall
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.nicehttp.NiceResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.app
+import kotlin.text.Regex
 
 class AnimeSail : MainAPI() {
     override var mainUrl = "https://154.26.137.28"
@@ -38,59 +44,59 @@ class AnimeSail : MainAPI() {
 
     private suspend fun request(url: String, ref: String? = null): NiceResponse {
         return app.get(
-                url,
-                headers =
-                        mapOf(
-                                "Accept" to
-                                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-                        ),
-                cookies = mapOf("_as_ipin_ct" to "ID"),
-                referer = ref
+            url,
+            headers =
+                mapOf(
+                    "Accept" to
+                            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+                ),
+            cookies = mapOf("_as_ipin_ct" to "ID"),
+            referer = ref
         )
     }
 
     override val mainPage =
-            mainPageOf(
-                    "$mainUrl/page/" to "Episode Terbaru",
-                    "$mainUrl/movie-terbaru/page/" to "Movie Terbaru",
-                    "$mainUrl/genres/donghua/page/" to "Donghua",
-                    "$mainUrl/genres/action/page/" to "Action",
-                    "$mainUrl/genres/adult-cast/page/" to "Adult Cast",
-                    "$mainUrl/genres/adventure/page/" to "Adventure",
-                    "$mainUrl/genres/award-winning/page/" to "Award Winning",
-                    "$mainUrl/genres/comedy/page/" to "Comedy",
-                    "$mainUrl/genres/demons/page/" to "Demons",
-                    "$mainUrl/genres/donghua/page/" to "Donghua",
-                    "$mainUrl/genres/drama/page/" to "Drama",
-                    "$mainUrl/genres/ecchi/page/" to "Ecchi",
-                    "$mainUrl/genres/fantasy/page/" to "Fantasy",
-                    "$mainUrl/genres/game/page/" to "Game",
-                    "$mainUrl/genres/harem/page/" to "Harem",
-                    "$mainUrl/genres/historical/page/" to "Historical",
-                    "$mainUrl/genres/horror/page/" to "Horror",
-                    "$mainUrl/genres/isekai/page/" to "Isekai",
-                    "$mainUrl/genres/kids/page/" to "Kids",
-                    "$mainUrl/genres/magic/page/" to "Magic",
-                    "$mainUrl/genres/martial-arts/page/" to "Martial Arts",
-                    "$mainUrl/genres/mecha/page/" to "Mecha",
-                    "$mainUrl/genres/military/page/" to "Military",
-                    "$mainUrl/genres/music/page/" to "Music",
-                    "$mainUrl/genres/mystery/page/" to "Mystery",
-                    "$mainUrl/genres/mythology/page/" to "Mythology",
-                    "$mainUrl/genres/parody/page/" to "Parody",
-                    "$mainUrl/genres/psychological/page/" to "Psychological",
-                    "$mainUrl/genres/reincarnation/page/" to "Reincarnation",
-                    "$mainUrl/genres/school/page/" to "School",
-                    "$mainUrl/genres/sci-fi/page/" to "Sci-Fi",
-                    "$mainUrl/genres/seinen/page/" to "Seinen",
-                    "$mainUrl/genres/shoujo/page/" to "Shoujo",
-                    "$mainUrl/genres/shounen/page/" to "Shounen",
-                    "$mainUrl/genres/slice-of-life/page/" to "Slice of Life",
-                    "$mainUrl/genres/space/page/" to "Space",
-                    "$mainUrl/genres/sports/page/" to "Sports",
-                    "$mainUrl/genres/super-power/page/" to "Super Power",
-                    "$mainUrl/genres/supernatural/page/" to "Supernatural",
-            )
+        mainPageOf(
+            "$mainUrl/page/" to "Episode Terbaru",
+            "$mainUrl/movie-terbaru/page/" to "Movie Terbaru",
+            "$mainUrl/genres/donghua/page/" to "Donghua",
+            "$mainUrl/genres/action/page/" to "Action",
+            "$mainUrl/genres/adult-cast/page/" to "Adult Cast",
+            "$mainUrl/genres/adventure/page/" to "Adventure",
+            "$mainUrl/genres/award-winning/page/" to "Award Winning",
+            "$mainUrl/genres/comedy/page/" to "Comedy",
+            "$mainUrl/genres/demons/page/" to "Demons",
+            "$mainUrl/genres/donghua/page/" to "Donghua",
+            "$mainUrl/genres/drama/page/" to "Drama",
+            "$mainUrl/genres/ecchi/page/" to "Ecchi",
+            "$mainUrl/genres/fantasy/page/" to "Fantasy",
+            "$mainUrl/genres/game/page/" to "Game",
+            "$mainUrl/genres/harem/page/" to "Harem",
+            "$mainUrl/genres/historical/page/" to "Historical",
+            "$mainUrl/genres/horror/page/" to "Horror",
+            "$mainUrl/genres/isekai/page/" to "Isekai",
+            "$mainUrl/genres/kids/page/" to "Kids",
+            "$mainUrl/genres/magic/page/" to "Magic",
+            "$mainUrl/genres/martial-arts/page/" to "Martial Arts",
+            "$mainUrl/genres/mecha/page/" to "Mecha",
+            "$mainUrl/genres/military/page/" to "Military",
+            "$mainUrl/genres/music/page/" to "Music",
+            "$mainUrl/genres/mystery/page/" to "Mystery",
+            "$mainUrl/genres/mythology/page/" to "Mythology",
+            "$mainUrl/genres/parody/page/" to "Parody",
+            "$mainUrl/genres/psychological/page/" to "Psychological",
+            "$mainUrl/genres/reincarnation/page/" to "Reincarnation",
+            "$mainUrl/genres/school/page/" to "School",
+            "$mainUrl/genres/sci-fi/page/" to "Sci-Fi",
+            "$mainUrl/genres/seinen/page/" to "Seinen",
+            "$mainUrl/genres/shoujo/page/" to "Shoujo",
+            "$mainUrl/genres/shounen/page/" to "Shounen",
+            "$mainUrl/genres/slice-of-life/page/" to "Slice of Life",
+            "$mainUrl/genres/space/page/" to "Space",
+            "$mainUrl/genres/sports/page/" to "Sports",
+            "$mainUrl/genres/super-power/page/" to "Super Power",
+            "$mainUrl/genres/supernatural/page/" to "Supernatural",
+        )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = request(request.data + page).document
@@ -104,12 +110,13 @@ class AnimeSail : MainAPI() {
         } else {
             var title = uri.substringAfter("$mainUrl/")
             title =
-                    when {
-                        (title.contains("-episode")) && !(title.contains("-movie")) ->
-                                title.substringBefore("-episode")
-                        (title.contains("-movie")) -> title.substringBefore("-movie")
-                        else -> title
-                    }
+                when {
+                    (title.contains("-episode")) && !(title.contains("-movie")) ->
+                        title.substringBefore("-episode")
+
+                    (title.contains("-movie")) -> title.substringBefore("-movie")
+                    else -> title
+                }
 
             "$mainUrl/anime/$title"
         }
@@ -120,9 +127,9 @@ class AnimeSail : MainAPI() {
         val title = this.select(".tt > h2").text().trim()
         val posterUrl = fixUrl(this.selectFirst("div.limit img")?.attr("src") ?: "")
         val epNum =
-                this.selectFirst(".tt > h2")?.text()?.let {
-                    Regex("Episode\\s?(\\d+)").find(it)?.groupValues?.getOrNull(1)?.toIntOrNull()
-                }
+            this.selectFirst(".tt > h2")?.text()?.let {
+                Regex("Episode\\s?(\\d+)").find(it)?.groupValues?.getOrNull(1)?.toIntOrNull()
+            }
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
             addSub(epNum)
@@ -157,7 +164,8 @@ class AnimeSail : MainAPI() {
                     val episodeLink = fixUrl(anchor.attr("href"))
                     val episodeName = anchor.text()
 
-                    val episodeNumber = // Renamed from 'episode' to avoid confusion with property name
+                    val episodeNumber =
+                        // Renamed from 'episode' to avoid confusion with property name
                         Regex("Episode\\s?(\\d+)")
                             .find(episodeName)
                             ?.groupValues
@@ -190,10 +198,10 @@ class AnimeSail : MainAPI() {
     }
 
     override suspend fun loadLinks(
-            data: String,
-            isCasting: Boolean,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
     ): Boolean {
 
         val document = request(data).document
@@ -201,31 +209,32 @@ class AnimeSail : MainAPI() {
         document.select(".mobius > .mirror > option").apmap {
             safeApiCall {
                 val iframe =
-                        fixUrl(
-                            Jsoup.parse(base64Decode(it.attr("data-em")))
-                                    .select("iframe")
-                                    .attr("src")
-                        )
+                    fixUrl(
+                        Jsoup.parse(base64Decode(it.attr("data-em")))
+                            .select("iframe")
+                            .attr("src")
+                    )
                 val quality = getIndexQuality(it.text())
                 when {
                     iframe.startsWith("$mainUrl/utils/player/arch/") ||
                             iframe.startsWith("$mainUrl/utils/player/race/") ->
-                            request(iframe, ref = data).document.select("source").attr("src").let {
-                                    link ->
+                        request(iframe, ref = data).document.select("source").attr("src")
+                            .let { link ->
                                 val source =
-                                        when {
-                                            iframe.contains("/arch/") -> "Arch"
-                                            iframe.contains("/race/") -> "Race"
-                                            else -> this.name
-                                        }
+                                    when {
+                                        iframe.contains("/arch/") -> "Arch"
+                                        iframe.contains("/race/") -> "Race"
+                                        else -> this.name
+                                    }
                                 callback.invoke(
-                                        ExtractorLink(
-                                            source,
-                                            source,
-                                            link,
-                                            mainUrl,
-                                            quality,
-                                        )
+                                    newExtractorLink(
+                                        source,
+                                        source,
+                                        link,
+                                    ) {
+                                        this.referer = mainUrl
+                                        this.quality = getIndexQuality(it.text())
+                                    }
                                 )
                             }
                     //                    skip for now
@@ -233,24 +242,26 @@ class AnimeSail : MainAPI() {
                     //                    iframe.startsWith("$mainUrl/utils/player/blogger/") -> ""
                     iframe.startsWith("https://aghanim.xyz/tools/redirect/") -> {
                         val link =
-                                "https://rasa-cintaku-semakin-berantai.xyz/v/${
-                            iframe.substringAfter("id=").substringBefore("&token")
-                        }"
+                            "https://rasa-cintaku-semakin-berantai.xyz/v/${
+                                iframe.substringAfter("id=").substringBefore("&token")
+                            }"
                         loadFixedExtractor(link, quality, mainUrl, subtitleCallback, callback)
                     }
+
                     iframe.startsWith("$mainUrl/utils/player/framezilla/") ||
                             iframe.startsWith("https://uservideo.xyz") -> {
                         request(iframe, ref = data).document.select("iframe").attr("src").let { link
                             ->
                             loadFixedExtractor(
-                                    fixUrl(link),
-                                    quality,
-                                    mainUrl,
-                                    subtitleCallback,
-                                    callback
+                                fixUrl(link),
+                                quality,
+                                mainUrl,
+                                subtitleCallback,
+                                callback
                             )
                         }
                     }
+
                     else -> {
                         loadFixedExtractor(iframe, quality, mainUrl, subtitleCallback, callback)
                     }
@@ -261,33 +272,38 @@ class AnimeSail : MainAPI() {
         return true
     }
 
+    private fun getIndexQuality(str: String?): Int {
+        return Regex("(\\d{3,4})[pP]").find(str ?: "")?.groupValues?.getOrNull(1)?.toIntOrNull()
+            ?: Qualities.Unknown.value
+    }
+
     private suspend fun loadFixedExtractor(
-            url: String,
-            quality: Int,
-            referer: String? = null,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+        url: String,
+        quality: Int,
+        referer: String? = null,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
     ) {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            if (link.type == ExtractorLinkType.M3U8) link.quality
-                            else quality,
-                            link.type
-                    ).apply {
+            CoroutineScope(Dispatchers.IO).launch {
+                callback.invoke(
+                    newExtractorLink(
+                        name,
+                        name,
+                        link.url,
+                    ) {
+                        this.referer = link.referer
+                        this.type = link.type
                         this.extractorData = link.extractorData
                         this.headers = link.headers
                     }
-            )
+                )
+            }
         }
-    }
 
-    private fun getIndexQuality(str: String): Int {
-        return Regex("(\\d{3,4})[pP]").find(str)?.groupValues?.getOrNull(1)?.toIntOrNull()
+        fun getIndexQuality(str: String): Int {
+            return Regex("(\\d{3,4})[pP]").find(str)?.groupValues?.getOrNull(1)?.toIntOrNull()
                 ?: Qualities.Unknown.value
+        }
     }
 }

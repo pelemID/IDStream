@@ -5,8 +5,17 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.base64Decode
 
 class Animasu : MainAPI() {
     override var mainUrl = "https://v9.animasu.cc"
@@ -168,28 +177,31 @@ class Animasu : MainAPI() {
     }
 
     private suspend fun loadFixedExtractor(
-            url: String,
-            quality: String?,
-            referer: String? = null,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+        name: String? = null,
+        url: String,
+        referer: String? = null,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit,
+        quality: Int? = null,
     ) {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            if (link.type == ExtractorLinkType.M3U8 || link.name == "Uservideo")
-                                    link.quality
-                            else getIndexQuality(quality),
-                            link.type,
-                    ).apply {
-                        this.extractorData = link.extractorData
+            CoroutineScope(Dispatchers.IO).launch {
+                callback.invoke(
+                    newExtractorLink(
+                        name ?: link.source,
+                        name ?: link.name,
+                        link.url,
+                    ) {
+                        this.quality = when {
+                            else -> quality ?: link.quality
+                        }
+                        this.type = link.type
+                        this.referer = link.referer
                         this.headers = link.headers
+                        this.extractorData = link.extractorData
                     }
-            )
+                )
+            }
         }
     }
 

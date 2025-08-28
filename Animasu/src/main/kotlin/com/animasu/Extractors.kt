@@ -10,6 +10,7 @@ import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Archivd : ExtractorApi() {
     override val name: String = "Archivd"
@@ -26,14 +27,16 @@ class Archivd : ExtractorApi() {
         val json = res.select("div#app").attr("data-page")
         val video = tryParseJson<Sources>(json)?.props?.datas?.data?.link?.media
         callback.invoke(
-                ExtractorLink(
-                        this.name,
-                        this.name,
-                        video ?: return,
-                        "$mainUrl/",
-                        Qualities.Unknown.value,
-                        type = INFER_TYPE
-                )
+            newExtractorLink(
+                name,
+                name,
+                video ?: return,
+                INFER_TYPE
+            ) {
+                this.referer = mainUrl
+                this.quality = Qualities.P1080.value
+                this.headers = headers
+            }
         )
     }
 
@@ -58,48 +61,47 @@ class Archivd : ExtractorApi() {
     )
 }
 
-class Newuservideo : ExtractorApi() {
+open class Newuservideo : ExtractorApi() {
     override val name: String = "Uservideo"
-    override val mainUrl: String = "https://new.uservideo.xyz"
-    override val requiresReferer = true
+    override val mainUrl: String = "https://uservideo.xyz"
+    override val requiresReferer = false
 
     override suspend fun getUrl(
-            url: String,
-            referer: String?,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
     ) {
-        val iframe =
-                app.get(url, referer = referer).document.select("iframe#videoFrame").attr("src")
-        val doc = app.get(iframe, referer = "$mainUrl/").text
-        val json = "VIDEO_CONFIG\\s?=\\s?(.*)".toRegex().find(doc)?.groupValues?.get(1)
+        val script = app.get(url).document.selectFirst("script:containsData(hosts =)")?.data()
+        val host = script?.substringAfter("hosts = [\"")?.substringBefore("\"];")
+        val servers = script?.substringAfter("servers = \"")?.substringBefore("\";")
 
-        tryParseJson<Sources>(json)?.streams?.map {
+        val sources = app.get("$host/s/$servers").text.substringAfter("\"sources\":[").substringBefore("],").let {
+            AppUtils.tryParseJson<List<Sources>>("[$it]")
+        }
+        val quality = Regex("(\\d{3,4})[Pp]").find(url)?.groupValues?.getOrNull(1)?.toIntOrNull()
+
+        sources?.map { source ->
             callback.invoke(
-                    ExtractorLink(
-                            this.name,
-                            this.name,
-                            it.playUrl ?: return@map,
-                            "$mainUrl/",
-                            when (it.formatId) {
-                                18 -> Qualities.P360.value
-                                22 -> Qualities.P720.value
-                                else -> Qualities.Unknown.value
-                            },
-                            type = INFER_TYPE
-                    )
+                newExtractorLink(
+                    name,
+                    name,
+                    source.src ?: return@map null
+                ) {
+                    this.referer = url
+                    this.quality = quality ?: Qualities.Unknown.value
+                }
             )
         }
+
     }
 
-    data class Streams(
-            @JsonProperty("play_url") val playUrl: String? = null,
-            @JsonProperty("format_id") val formatId: Int? = null,
+    data class Sources(
+        @JsonProperty("src") val src: String? = null,
+        @JsonProperty("type") val type: String? = null,
+        @JsonProperty("label") val label: String? = null,
     )
 
-    data class Sources(
-            @JsonProperty("streams") val streams: ArrayList<Streams>? = null,
-    )
 }
 
 class Vidhidepro : Filesim() {
@@ -117,21 +119,22 @@ open class Blogger : ExtractorApi() {
         with(app.get(url).document) {
             this.select("script").map { script ->
                 if (script.data().contains("\"streams\":[")) {
-                    val data = script.data().substringAfter("\"streams\":[").substringBefore("]")
+                    val data = script.data().substringAfter("\"streams\":[")
+                        .substringBefore("]")
                     tryParseJson<List<ResponseSource>>("[$data]")?.map {
                         sources.add(
-                                ExtractorLink(
-                                        name,
-                                        name,
-                                        it.play_url,
-                                        referer = "https://www.youtube.com/",
-                                        quality =
-                                                when (it.format_id) {
-                                                    18 -> 360
-                                                    22 -> 720
-                                                    else -> Qualities.Unknown.value
-                                                }
-                                )
+                            newExtractorLink(
+                                name,
+                                name,
+                                it.play_url,
+                            ) {
+                                this.referer = "https://www.youtube.com/"
+                                this.quality = when (it.format_id) {
+                                    18 -> 360
+                                    22 -> 720
+                                    else -> Qualities.Unknown.value
+                                }
+                            }
                         )
                     }
                 }
@@ -141,7 +144,7 @@ open class Blogger : ExtractorApi() {
     }
 
     private data class ResponseSource(
-            @JsonProperty("play_url") val play_url: String,
-            @JsonProperty("format_id") val format_id: Int
+        @JsonProperty("play_url") val play_url: String,
+        @JsonProperty("format_id") val format_id: Int
     )
 }
