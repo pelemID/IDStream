@@ -135,7 +135,7 @@ class DramaSerial : MainAPI() {
 
         }
 
-        private suspend fun invokeGdrive(
+        suspend fun invokeGdrive(
             name: String,
             url: String,
             callback: (ExtractorLink) -> Unit
@@ -207,7 +207,7 @@ class DramaSerial : MainAPI() {
             }
         }
 
-        private data class Sources(
+        data class Sources(
             @JsonProperty("file") val file: String? = null,
             @JsonProperty("label") val label: String? = null,
         )
