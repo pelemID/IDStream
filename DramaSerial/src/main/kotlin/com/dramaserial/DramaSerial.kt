@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.extractors.Filesim
 import com.lagradost.cloudstream3.utils.AppUtils
-import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
@@ -120,16 +120,16 @@ class DramaSerial : MainAPI() {
             ).document.selectFirst("script:containsData(sources)")?.data() ?: return
 
             val json = "sources:\\s*\\[(.*)]".toRegex().find(script)?.groupValues?.get(1)
-            AppUtils.tryParseJson<ArrayList<Sources>>("[$json]")?.map {
+            AppUtils.tryParseJson<ArrayList<Sources>>(json)?.map {                
                 callback.invoke(
-                    ExtractorLink(
-                        name,
-                        name,
-                        it.file ?: return@map,
-                        "$serverUrl/",
-                        getQualityFromName(it.label),
-                        INFER_TYPE,
-                    )
+                    newExtractorLink(
+                        this.name,
+                        this.name,
+                        it.file
+                    ){
+				        this.referer = "$mainUrl/"
+                        this.quality = getQualityFromName(it.label)
+			        }
                 )
             }
 
