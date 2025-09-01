@@ -133,13 +133,12 @@ class DutaMovie : MainAPI() {
                                         name.split(" ")
                                                 .firstOrNull()
                                                 ?.filter { it.isDigit() }
-                                                ?.toIntOrNull()
-                                Episode(
-                                        href,
-                                        name,
-                                        season = if (name.contains(" ")) season else null,
-                                        episode = episode,
-                                )
+                                                ?.toIntOrNull()                               
+                                newEpisode(href) {
+                                    this.name = name
+                                    this.episode = episode
+                                    this.season = if (name.contains(" ")) season else null
+                                }
                             }
                             .filter { it.episode != null }
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
