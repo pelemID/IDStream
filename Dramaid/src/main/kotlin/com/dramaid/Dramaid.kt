@@ -156,14 +156,15 @@ open class Dramaid : MainAPI() {
             .replace("kind", "\"kind\"").trimIndent()
 
         tryParseJson<List<Sources>>(source)?.map {
-            sourceCallback(
-                ExtractorLink(
-                    name,
-                    "Drive",
-                    fixUrl(it.file),
-                    referer = "https://motonews.club/",
-                    quality = getQualityFromName(it.label)
-                )
+            sourceCallback(                
+                newExtractorLink(
+					this.name,
+					"Drive",
+					fixUrl(it.file)
+				){
+					this.referer = "https://motonews.club/"
+                    this.quality = getQualityFromName(it.label)
+				}
             )
         }
 
