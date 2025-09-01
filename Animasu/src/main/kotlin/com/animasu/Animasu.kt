@@ -164,7 +164,7 @@ class Animasu : MainAPI() {
                             Jsoup.parse(base64Decode(it.attr("value"))).select("iframe").attr("src")
                     ) to it.text()
                 }
-                .apmap { (iframe, quality) ->
+                .amap { (iframe, quality) ->
                     loadFixedExtractor(
                             iframe.fixIframe(),
                             quality,
