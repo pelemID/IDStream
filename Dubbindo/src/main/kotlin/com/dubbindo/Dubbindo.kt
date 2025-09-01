@@ -3,7 +3,7 @@ package com.dubbindo
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
-import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Element
@@ -107,16 +107,16 @@ class Dubbindo : MainAPI() {
             if (video.type == "video/mp4" ||
                             video.type == "video/x-msvideo" ||
                             video.type == "video/x-matroska"
-            ) {
+            ) {               
                 callback.invoke(
-                        ExtractorLink(
-                                this.name,
-                                this.name,
-                                video.src ?: return@map,
-                                "",
-                                video.res?.toIntOrNull() ?: Qualities.Unknown.value,
-                        )
-                )
+						newExtractorLink(
+							this.name,
+							this.name,
+							video.src
+						){
+							this.quality = video.res?.toIntOrNull() ?: Qualities.Unknown.value
+						}
+					)
             } else {
                 loadExtractor(video.src ?: return@map, "", subtitleCallback, callback)
             }
