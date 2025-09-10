@@ -32,7 +32,7 @@ open class Emturbovid : ExtractorApi() {
 
 open class Hownetwork : ExtractorApi() {
     override val name = "Hownetwork"
-    override val mainUrl = "https://stream.hownetwork.xyz"
+    override val mainUrl = "https://cloud.hownetwork.xyz"
     override val requiresReferer = true
 
     override suspend fun getUrl(
@@ -47,7 +47,7 @@ open class Hownetwork : ExtractorApi() {
                                 "$mainUrl/api.php?id=$id",
                                 data =
                                         mapOf(
-                                                "r" to "https://playeriframe.shop/",
+                                                "r" to "https://playeriframe.sbs/",
                                                 "d" to "stream.hownetwork.xyz",
                                         ),
                                 referer = url,
@@ -77,7 +77,8 @@ open class Hownetwork : ExtractorApi() {
     }
 }
 
-class Furher : Filesim() {
-    override val name = "Furher"
-    override var mainUrl = "https://furher.in"
+class FileMoon : Filesim() {
+    override val name = "FileMoon"
+    override var mainUrl = "https://filemoon.sx"
 }
+
