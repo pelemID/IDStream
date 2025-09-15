@@ -143,7 +143,7 @@ class DramaSerial : MainAPI() {
                 newExtractorLink(
                     name,
                     name,
-                    source.file
+                    source.file.toString()
                 ) {
                     this.referer = "$mainUrl/"
                     this.quality = getQualityFromName(source.label)
