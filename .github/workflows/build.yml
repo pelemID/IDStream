@@ -1,6 +1,5 @@
 name: Build
 
-# Hanya jalan kalau manual (workflow_dispatch)
 on:
   workflow_dispatch:
 
@@ -12,16 +11,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4.2.2
         with:
           path: "src"
 
-      - name: Checkout builds
-        uses: actions/checkout@v4.2.2
-        with:
-          ref: "builds"
-          path: "builds"
+      - name: Checkout builds (create if not exists)
+        run: |
+          git fetch origin
+          if git ls-remote --exit-code origin builds; then
+            echo "Branch 'builds' exists, checking out..."
+            git clone --branch builds https://github.com/${{ github.repository }} builds
+          else
+            echo "Branch 'builds' does not exist, creating..."
+            git clone https://github.com/${{ github.repository }} builds
+            cd builds
+            git checkout --orphan builds
+            git rm -rf .
+            echo "# builds branch" > README.md
+            git add README.md
+            git commit -m "init builds branch"
+            git push origin builds
+          fi
 
       - name: Clean old builds
         run: |
@@ -31,7 +42,7 @@ jobs:
       - name: Setup JDK 17
         uses: actions/setup-java@v4.6.0
         with:
-          distribution: "temurin" # lebih update daripada adopt
+          distribution: "temurin"
           java-version: 17
 
       - name: Setup Android SDK
@@ -70,4 +81,4 @@ jobs:
           git config --local user.name "GitHub Actions"
           git add .
           git commit --amend -m "Build $GITHUB_SHA" || exit 0
-          git push --force
+          git push --force origin builds
