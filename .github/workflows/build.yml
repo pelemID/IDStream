@@ -39,10 +39,7 @@ jobs:
 
       - name: Access Secrets
         run: |
-          cd $GITHUB_WORKSPACE/src
-          echo TMDB_API=${{ secrets.TMDB_API }} >> local.properties
-          echo DUMP_API=${{ secrets.DUMP_API }} >> local.properties
-          echo DUMP_KEY=${{ secrets.DUMP_KEY }} >> local.properties
+          cd $GITHUB_WORKSPACE/src         
           echo ANIMASU_API=${{ secrets.ANIMASU_API }} >> local.properties
           echo DUBBINDO_API=${{ secrets.DUBBINDO_API }} >> local.properties
           echo GOMOV_API=${{ secrets.GOMOV_API }} >> local.properties
