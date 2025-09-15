@@ -113,7 +113,7 @@ class Dubbindo : MainAPI() {
 						newExtractorLink(
 							this.name,
 							this.name,
-							video.src
+							video.src.toString()
 						){
 							this.quality = video.res?.toIntOrNull() ?: Qualities.Unknown.value
 						}
