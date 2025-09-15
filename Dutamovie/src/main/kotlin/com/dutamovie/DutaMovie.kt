@@ -109,7 +109,7 @@ class DutaMovie : MainAPI() {
         val trailer = document.selectFirst("ul.gmr-player-nav li a.gmr-trailer-popup")?.attr("href")
         val rating =
                 document.selectFirst("div.gmr-meta-rating > span[itemprop=ratingValue]")
-                        ?.text().trim()
+                        ?.text()?.trim()
         val actors =
                 document.select("div.gmr-moviedata").last()?.select("span[itemprop=actors]")?.map {
                     it.select("a").text()
@@ -183,7 +183,7 @@ class DutaMovie : MainAPI() {
                                 .selectFirst("div.gmr-embed-responsive iframe")
                                 .getIframeAttr()
                                 ?.let { httpsify(it) }
-                                ?: return@apmap
+                                ?: return@amap
 
                 loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
             }
