@@ -157,7 +157,7 @@ class DutaMovie : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score = rating
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -176,7 +176,7 @@ class DutaMovie : MainAPI() {
         val id = document.selectFirst("div#muvipro_player_content_id")?.attr("data-id")
 
         if (id.isNullOrEmpty()) {
-            document.select("ul.muvipro-player-tabs li a").apmap { ele ->
+            document.select("ul.muvipro-player-tabs li a").amap { ele ->
                 val iframe =
                         app.get(fixUrl(ele.attr("href")))
                                 .document
