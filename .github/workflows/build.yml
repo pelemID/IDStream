@@ -29,6 +29,8 @@ jobs:
             git rm -rf .
             echo "# builds branch" > README.md
             git add README.md
+            git config user.email "actions@github.com"
+            git config user.name "GitHub Actions"
             git commit -m "init builds branch"
             git push origin builds
           fi
