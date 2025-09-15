@@ -191,7 +191,7 @@ class DramaSerial : MainAPI() {
         val iframe = document.select("iframe[name=juraganfilm]").attr("src")
 
         app.get(iframe, referer = "$mainUrl/").document.select("div#header-slider ul li")
-            .apmap { mLink ->
+            .amap { mLink ->
                 val iLink = mLink.attr("onclick").substringAfter("frame('").substringBefore("')")
                 serverUrl = getBaseUrl(iLink)
                 val iMovie = iLink.substringAfter("movie=").substringBefore("&")
