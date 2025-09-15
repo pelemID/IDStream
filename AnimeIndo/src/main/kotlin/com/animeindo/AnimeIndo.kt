@@ -200,14 +200,14 @@ class AnimeIndo : MainAPI() {
                 .mapNotNull {
                     fixUrl(Jsoup.parse(base64Decode(it.attr("value"))).select("iframe").attr("src"))
                 }
-                .apmap {
+                .amap {
                     if (it.startsWith(mainUrl)) {
                         app.get(it, referer = "$mainUrl/").document.select("iframe").attr("src")
                     } else {
                         it
                     }
                 }
-                .apmap { loadExtractor(httpsify(it), data, subtitleCallback, callback) }
+                .amap { loadExtractor(httpsify(it), data, subtitleCallback, callback) }
 
         return true
     }

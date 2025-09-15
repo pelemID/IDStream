@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
@@ -156,14 +157,15 @@ open class Dramaid : MainAPI() {
             .replace("kind", "\"kind\"").trimIndent()
 
         tryParseJson<List<Sources>>(source)?.map {
-            sourceCallback(
-                ExtractorLink(
-                    name,
-                    "Drive",
-                    fixUrl(it.file),
-                    referer = "https://motonews.club/",
-                    quality = getQualityFromName(it.label)
-                )
+            sourceCallback(                
+                newExtractorLink(
+					this.name,
+					"Drive",
+					fixUrl(it.file)
+				){
+					this.referer = "https://motonews.club/"
+                    this.quality = getQualityFromName(it.label)
+				}
             )
         }
 

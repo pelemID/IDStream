@@ -133,13 +133,12 @@ class DutaMovie : MainAPI() {
                                         name.split(" ")
                                                 .firstOrNull()
                                                 ?.filter { it.isDigit() }
-                                                ?.toIntOrNull()
-                                Episode(
-                                        href,
-                                        name,
-                                        season = if (name.contains(" ")) season else null,
-                                        episode = episode,
-                                )
+                                                ?.toIntOrNull()                               
+                                newEpisode(href) {
+                                    this.name = name
+                                    this.episode = episode
+                                    this.season = if (name.contains(" ")) season else null
+                                }
                             }
                             .filter { it.episode != null }
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
@@ -158,7 +157,7 @@ class DutaMovie : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score = rating
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -177,7 +176,7 @@ class DutaMovie : MainAPI() {
         val id = document.selectFirst("div#muvipro_player_content_id")?.attr("data-id")
 
         if (id.isNullOrEmpty()) {
-            document.select("ul.muvipro-player-tabs li a").apmap { ele ->
+            document.select("ul.muvipro-player-tabs li a").amap { ele ->
                 val iframe =
                         app.get(fixUrl(ele.attr("href")))
                                 .document

@@ -206,7 +206,7 @@ class AnimeSail : MainAPI() {
 
         val document = request(data).document
 
-        document.select(".mobius > .mirror > option").apmap {
+        document.select(".mobius > .mirror > option").amap {
             safeApiCall {
                 val iframe =
                     fixUrl(
