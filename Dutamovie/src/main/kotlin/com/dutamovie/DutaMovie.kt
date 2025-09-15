@@ -2,6 +2,7 @@ package com.dutamovie
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.SearchResponse
@@ -108,7 +109,7 @@ class DutaMovie : MainAPI() {
         val trailer = document.selectFirst("ul.gmr-player-nav li a.gmr-trailer-popup")?.attr("href")
         val rating =
                 document.selectFirst("div.gmr-meta-rating > span[itemprop=ratingValue]")
-                        ?.text()
+                        ?.text().trim()
         val actors =
                 document.select("div.gmr-moviedata").last()?.select("span[itemprop=actors]")?.map {
                     it.select("a").text()
@@ -145,7 +146,7 @@ class DutaMovie : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.score = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -156,7 +157,7 @@ class DutaMovie : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.score = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
