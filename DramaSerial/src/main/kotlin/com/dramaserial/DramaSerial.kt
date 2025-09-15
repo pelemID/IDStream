@@ -6,7 +6,6 @@ import com.lagradost.cloudstream3.extractors.Filesim
 import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import org.jsoup.nodes.Element
@@ -43,8 +42,10 @@ class DramaSerial : MainAPI() {
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
         val title = this.selectFirst("h2.entry-title a")?.text()?.trim() ?: return null
         val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
-        val episode =
-            this.selectFirst("div.gmr-episode-item")?.text()?.filter { it.isDigit() }?.toIntOrNull()
+        val episode = this.selectFirst("div.gmr-episode-item")
+            ?.text()
+            ?.filter { it.isDigit() }
+            ?.toIntOrNull()
 
         return newAnimeSearchResponse(title, href, TvType.AsianDrama) {
             this.posterUrl = posterUrl
@@ -66,23 +67,26 @@ class DramaSerial : MainAPI() {
 
         val title = document.selectFirst("h1.entry-title")!!.text().trim()
         val poster = fixUrlNull(document.selectFirst("figure.pull-left img")?.attr("src"))
-        val tags =
-            document.select("div.gmr-movie-innermeta span:contains(Genre:) a").map { it.text() }
-        val year =
-            document.selectFirst("div.gmr-movie-innermeta span:contains(Year:) a")!!.text().trim()
-                .toIntOrNull()
-        val duration =
-            document.selectFirst("div.gmr-movie-innermeta span:contains(Duration:)")?.text()
-                ?.filter { it.isDigit() }?.toIntOrNull()
-        val description =
-            document.select("div.entry-content.entry-content-single div.entry-content.entry-content-single")
-                .text().trim()
-        val type = if (document.select("div.page-links")
-                .isEmpty()
-        ) TvType.Movie else TvType.AsianDrama
+        val tags = document.select("div.gmr-movie-innermeta span:contains(Genre:) a").map { it.text() }
+        val year = document.selectFirst("div.gmr-movie-innermeta span:contains(Year:) a")
+            ?.text()
+            ?.trim()
+            ?.toIntOrNull()
+        val duration = document.selectFirst("div.gmr-movie-innermeta span:contains(Duration:)")
+            ?.text()
+            ?.filter { it.isDigit() }
+            ?.toIntOrNull()
+        val description = document.select("div.entry-content.entry-content-single div.entry-content.entry-content-single")
+            .text()
+            .trim()
+        val type = if (document.select("div.page-links").isEmpty()) {
+            TvType.Movie
+        } else {
+            TvType.AsianDrama
+        }
 
-        if (type == TvType.Movie) {
-            return newMovieLoadResponse(title, url, TvType.Movie, url) {
+        return if (type == TvType.Movie) {
+            newMovieLoadResponse(title, url, TvType.Movie, url) {
                 posterUrl = poster
                 this.year = year
                 plot = description
@@ -90,145 +94,135 @@ class DramaSerial : MainAPI() {
                 this.duration = duration
             }
         } else {
-            val episodes =
-                document.select("div.page-links span.page-link-number").mapNotNull { epsElement ->
-                    val episodeNumber = epsElement.text().filter { it.isDigit() }.toIntOrNull()
+            val episodes = document.select("div.page-links span.page-link-number").mapNotNull { epsElement ->
+                val episodeNumber = epsElement.text().filter { it.isDigit() }.toIntOrNull()
 
-                    val episodePageLink = if (episodeNumber == 1) {
-                        url // Base URL for the first episode
-                    } else {
-                        epsElement.parent()?.attr("href")?.let { fixUrl(it) } // Ensure URL is fixed
-                    }
-
-                    if (episodePageLink == null) return@mapNotNull null // Skip if link is null
-
-                    val episodeName = "Episode $episodeNumber" // Default name, improve if possible
-                    newEpisode(episodePageLink) { // 'episodePageLink' is the 'data' argument
-                        this.name = episodeName          // Set the 'name' property
-                        this.episode = episodeNumber     // Set the 'episode' property (the number)
-                    }
-                }
-        }
-
-        suspend fun invokeGetbk(
-    		name: String,
-    		url: String,
-    		callback: (ExtractorLink) -> Unit
-		) {
-   		 val script = app.get(
-       		 url,
-        		referer = "$serverUrl/"
-    		).document.selectFirst("script:containsData(sources)")?.data() ?: return
-
-    		// Ambil isi sources: [ ... ]
-    		val json = Regex("""sources\s*:\s*(\[[^\]]+\])""")
-        		.find(script)
-        		?.groupValues
-        		?.getOrNull(1)
-        		?: return
-
-    		// Parse JSON ke list
-    		AppUtils.tryParseJson<List<Sources>>(json)?.forEach { source ->
-        		callback.invoke(
-            		newExtractorLink(
-                		name, // pakai parameter name
-                		name,
-                		source.file
-		            ) {
-                		this.referer = "$mainUrl/"
-                		this.quality = getQualityFromName(source.label)
-           		 	}
-        		)
-   		 	}
-		}
-
-        suspend fun invokeGdrive(
-            name: String,
-            url: String,
-            callback: (ExtractorLink) -> Unit
-        ) {
-
-            val embedUrl = app.get(
-                url,
-                referer = "$serverUrl/"
-            ).document.selectFirst("iframe")?.attr("src")?.let { fixUrl(it) } ?: return
-
-            val req = app.get(embedUrl)
-            val host = getBaseUrl(embedUrl)
-            val token = req.document.selectFirst("div#token")?.text() ?: return
-
-            callback.invoke(
-                ExtractorLink(
-                    name,
-                    name,
-                    "$host/hlsplaylist.php?idhls=${token.trim()}.m3u8",
-                    "$host/",
-                    Qualities.Unknown.value,
-                    true
-                )
-            )
-
-        }
-
-        override suspend fun loadLinks(
-            data: String,
-            isCasting: Boolean,
-            subtitleCallback: (SubtitleFile) -> Unit,
-            callback: (ExtractorLink) -> Unit
-        ): Boolean {
-            val document = app.get(data).document
-
-            val iframe = document.select("iframe[name=juraganfilm]").attr("src")
-            app.get(iframe, referer = "$mainUrl/").document.select("div#header-slider ul li")
-                .apmap { mLink ->
-                    val iLink =
-                        mLink.attr("onclick").substringAfter("frame('").substringBefore("')")
-                    serverUrl = getBaseUrl(iLink)
-                    val iMovie = iLink.substringAfter("movie=").substringBefore("&")
-                    val mIframe = iLink.substringAfter("iframe=")
-                    val serverName = fixTitle(mIframe)
-                    when (mIframe) {
-                        "getbk" -> {
-                            invokeGetbk(
-                                serverName,
-                                "$serverUrl/stream/$mIframe.php?movie=$iMovie",
-                                callback
-                            )
-                        }
-
-                        "gdrivehls", "gdriveplayer" -> {
-                            invokeGdrive(serverName, iLink, callback)
-                        }
-
-                        else -> {}
-                    }
+                val episodePageLink = if (episodeNumber == 1) {
+                    url
+                } else {
+                    epsElement.parent()?.attr("href")?.let { fixUrl(it) }
                 }
 
-            return true
+                if (episodePageLink == null) return@mapNotNull null
 
-        }
+                val episodeName = "Episode $episodeNumber"
+                newEpisode(episodePageLink) {
+                    this.name = episodeName
+                    this.episode = episodeNumber
+                }
+            }
 
-        private fun getBaseUrl(url: String): String {
-            return URI(url).let {
-                "${it.scheme}://${it.host}"
+            newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
+                posterUrl = poster
+                this.year = year
+                plot = description
+                this.tags = tags
             }
         }
+    }
 
-        data class Sources(
-            @JsonProperty("file") val file: String? = null,
-            @JsonProperty("label") val label: String? = null,
+    private suspend fun invokeGetbk(
+        name: String,
+        url: String,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        val script = app.get(url, referer = "$serverUrl/")
+            .document
+            .selectFirst("script:containsData(sources)")
+            ?.data()
+            ?: return
+
+        val json = Regex("""sources\s*:\s*(\[[^\]]+\])""")
+            .find(script)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?: return
+
+        AppUtils.tryParseJson<List<Sources>>(json)?.forEach { source ->
+            callback.invoke(
+                newExtractorLink(
+                    name,
+                    name,
+                    source.file
+                ) {
+                    this.referer = "$mainUrl/"
+                    this.quality = getQualityFromName(source.label)
+                }
+            )
+        }
+    }
+
+    private suspend fun invokeGdrive(
+        name: String,
+        url: String,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        val embedUrl = app.get(url, referer = "$serverUrl/")
+            .document
+            .selectFirst("iframe")
+            ?.attr("src")
+            ?.let { fixUrl(it) }
+            ?: return
+
+        val req = app.get(embedUrl)
+        val host = getBaseUrl(embedUrl)
+        val token = req.document.selectFirst("div#token")?.text() ?: return
+
+        callback.invoke(
+            ExtractorLink(
+                name,
+                name,
+                "$host/hlsplaylist.php?idhls=${token.trim()}.m3u8",
+                "$host/",
+                Qualities.Unknown.value,
+                true
+            )
         )
-
-
     }
 
-    class Bk21 : Filesim() {
-        override val name = "Bk21"
-        override var mainUrl = "https://bk21.net"
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val document = app.get(data).document
+        val iframe = document.select("iframe[name=juraganfilm]").attr("src")
+
+        app.get(iframe, referer = "$mainUrl/").document.select("div#header-slider ul li")
+            .apmap { mLink ->
+                val iLink = mLink.attr("onclick").substringAfter("frame('").substringBefore("')")
+                serverUrl = getBaseUrl(iLink)
+                val iMovie = iLink.substringAfter("movie=").substringBefore("&")
+                val mIframe = iLink.substringAfter("iframe=")
+                val serverName = fixTitle(mIframe)
+
+                when (mIframe) {
+                    "getbk" -> invokeGetbk(serverName, "$serverUrl/stream/$mIframe.php?movie=$iMovie", callback)
+                    "gdrivehls", "gdriveplayer" -> invokeGdrive(serverName, iLink, callback)
+                    else -> {}
+                }
+            }
+
+        return true
     }
 
-    class Lkc21 : Filesim() {
-        override val name = "Lkc21"
-        override var mainUrl = "https://lkc21.net"
+    private fun getBaseUrl(url: String): String {
+        return URI(url).let { "${it.scheme}://${it.host}" }
     }
+
+    data class Sources(
+        @JsonProperty("file") val file: String? = null,
+        @JsonProperty("label") val label: String? = null,
+    )
+}
+
+class Bk21 : Filesim() {
+    override val name = "Bk21"
+    override var mainUrl = "https://bk21.net"
+}
+
+class Lkc21 : Filesim() {
+    override val name = "Lkc21"
+    override var mainUrl = "https://lkc21.net"
 }
