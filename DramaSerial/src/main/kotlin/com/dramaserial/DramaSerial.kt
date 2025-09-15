@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.extractors.Filesim
 import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
@@ -109,7 +110,7 @@ class DramaSerial : MainAPI() {
                 }
         }
 
-        private suspend fun invokeGetbk(
+        suspend fun invokeGetbk(
             name: String,
             url: String,
             callback: (ExtractorLink) -> Unit
@@ -120,7 +121,7 @@ class DramaSerial : MainAPI() {
             ).document.selectFirst("script:containsData(sources)")?.data() ?: return
 
             val json = "sources:\\s*\\[(.*)]".toRegex().find(script)?.groupValues?.get(1)
-            AppUtils.tryParseJson<ArrayList<Sources>>(json)?.map {                
+            AppUtils.tryParseJson<ArrayList<Sources>>(json)?.amap {                
                 callback.invoke(
                     newExtractorLink(
                         this.name,
