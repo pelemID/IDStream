@@ -193,7 +193,7 @@ open class Dramaid : MainAPI() {
 
         sources.map {
             it.replace("https://ndrama.xyz", "https://www.fembed.com")
-        }.apmap {
+        }.amap {
             when {
                 it.contains("motonews") -> invokeDriveSource(
                     it,
