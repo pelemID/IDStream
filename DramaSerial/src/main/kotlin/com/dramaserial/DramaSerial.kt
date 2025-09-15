@@ -111,30 +111,36 @@ class DramaSerial : MainAPI() {
         }
 
         suspend fun invokeGetbk(
-            name: String,
-            url: String,
-            callback: (ExtractorLink) -> Unit
-        ) {
-            val script = app.get(
-                url,
-                referer = "$serverUrl/"
-            ).document.selectFirst("script:containsData(sources)")?.data() ?: return
+    		name: String,
+    		url: String,
+    		callback: (ExtractorLink) -> Unit
+		) {
+   		 val script = app.get(
+       		 url,
+        		referer = "$serverUrl/"
+    		).document.selectFirst("script:containsData(sources)")?.data() ?: return
 
-            val json = "sources:\\s*\\[(.*)]".toRegex().find(script)?.groupValues?.get(1)
-            AppUtils.tryParseJson<ArrayList<Sources>>(json)?.amap {                
-                callback.invoke(
-                    newExtractorLink(
-                        this.name,
-                        this.name,
-                        it.file
-                    ){
-				        this.referer = "$mainUrl/"
-                        this.quality = getQualityFromName(it.label)
-			        }
-                )
-            }
+    		// Ambil isi sources: [ ... ]
+    		val json = Regex("""sources\s*:\s*(\[[^\]]+\])""")
+        		.find(script)
+        		?.groupValues
+        		?.getOrNull(1)
+        		?: return
 
-        }
+    		// Parse JSON ke list
+    		AppUtils.tryParseJson<List<Sources>>(json)?.forEach { source ->
+        		callback.invoke(
+            		newExtractorLink(
+                		name, // pakai parameter name
+                		name,
+                		source.file
+		            ) {
+                		this.referer = "$mainUrl/"
+                		this.quality = getQualityFromName(source.label)
+           		 	}
+        		)
+   		 	}
+		}
 
         suspend fun invokeGdrive(
             name: String,
