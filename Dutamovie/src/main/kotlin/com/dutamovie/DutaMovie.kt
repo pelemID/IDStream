@@ -188,7 +188,7 @@ class DutaMovie : MainAPI() {
                 loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
             }
         } else {
-            document.select("div.tab-content-ajax").apmap { ele ->
+            document.select("div.tab-content-ajax").amap { ele ->
                 val server =
                         app.post(
                                         "$directUrl/wp-admin/admin-ajax.php",
