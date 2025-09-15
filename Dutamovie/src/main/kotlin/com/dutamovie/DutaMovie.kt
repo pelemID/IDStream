@@ -109,7 +109,6 @@ class DutaMovie : MainAPI() {
         val rating =
                 document.selectFirst("div.gmr-meta-rating > span[itemprop=ratingValue]")
                         ?.text()
-                        ?.toRatingInt()
         val actors =
                 document.select("div.gmr-moviedata").last()?.select("span[itemprop=actors]")?.map {
                     it.select("a").text()
@@ -146,7 +145,7 @@ class DutaMovie : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score = rating
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
