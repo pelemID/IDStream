@@ -6,6 +6,7 @@ import com.lagradost.cloudstream3.extractors.Filesim
 import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import org.jsoup.nodes.Element
@@ -168,15 +169,15 @@ class DramaSerial : MainAPI() {
         val host = getBaseUrl(embedUrl)
         val token = req.document.selectFirst("div#token")?.text() ?: return
 
-        callback.invoke(
-            ExtractorLink(
+        callback.invoke(            
+            newExtractorLink(
                 name,
                 name,
                 "$host/hlsplaylist.php?idhls=${token.trim()}.m3u8",
-                "$host/",
-                Qualities.Unknown.value,
-                true
-            )
+                ExtractorLinkType.M3U8
+            ) {
+                this.referer = "$host/"
+            }
         )
     }
 
