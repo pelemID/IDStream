@@ -140,22 +140,20 @@ open class JWPlayer : ExtractorApi() {
                     }
 
             tryParseJson<List<ResponseSource>>("$data")?.map {
-                sources.add(                        
-                    callback.invoke(
-                        newExtractorLink(
-                            this.name,
-                            this.name,
-                            it.file
-                        ){
-				            this.referer = url
-                            this.quality = getQualityFromName(Regex("(\\d{3,4}p)") 
-                                .find(it.file)
-                                ?.groupValues
-                                ?.get(1)
-                            )
-			            }
-                    )
-                )
+                sources.add(
+                    newExtractorLink(
+                        this.name,
+                        this.name,
+                        it.file
+                    ){
+				        this.referer = url
+                        this.quality = getQualityFromName(Regex("(\\d{3,4}p)") 
+                            .find(it.file)
+                            ?.groupValues
+                            ?.get(1)
+                        )
+			        }
+                )                
             }
         }
         return sources
