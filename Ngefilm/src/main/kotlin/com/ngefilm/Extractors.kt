@@ -52,7 +52,7 @@ open class Chillx : ExtractorApi() {
             }
 
             // Prepare headers
-            val header =
+            val headers =
                     mapOf(
                             "accept" to "*/*",
                             "accept-language" to "en-US,en;q=0.5",
