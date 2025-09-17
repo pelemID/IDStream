@@ -6,8 +6,8 @@ import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.base64DecodeArray
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.INFER_TYPE
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Boosterx : Chillx() {
     override val name = "Boosterx"
@@ -67,15 +67,15 @@ open class Chillx : ExtractorApi() {
 
             // Return the extractor link
             callback.invoke(
-                    ExtractorLink(
-                            name,
-                            name,
-                            m3u8,
-                            mainUrl,
-                            Qualities.P1080.value,
-                            INFER_TYPE,
-                            headers = header
-                    )
+				newExtractorLink(
+                    name,
+                    name,
+                    m3u8
+                ){
+					this.referer = mainUrl
+					this.quality = Qualities.P1080.value
+					this.headers = headers
+				} 
             )
 
             // Extract and return subtitles

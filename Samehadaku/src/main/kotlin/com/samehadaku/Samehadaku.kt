@@ -4,9 +4,14 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 
 class Samehadaku : MainAPI() {
@@ -111,7 +116,7 @@ class Samehadaku : MainAPI() {
                                 ?.lowercase()
                                 ?: "tv"
                 )
-        val rating = document.selectFirst("span.ratingValue")?.text()?.trim()?.toRatingInt()
+        val rating = document.selectFirst("span.ratingValue")?.text()?.trim()
         val description = document.select("div.desc p").text().trim()
         val trailer = document.selectFirst("div.trailer-anime iframe")?.attr("src")
 
@@ -126,7 +131,7 @@ class Samehadaku : MainAPI() {
                                             ?.getOrNull(1)
                                             ?.toIntOrNull()
                             val link = fixUrl(header.attr("href"))
-                            Episode(link, episode = episode)
+                            newEpisode(link){this.episode = episode}
                         }
                         .reversed()
 
@@ -142,7 +147,7 @@ class Samehadaku : MainAPI() {
             this.year = year
             addEpisodes(DubStatus.Subbed, episodes)
             showStatus = status
-            this.rating = rating
+            addScore(rating)
             plot = description
             addTrailer(trailer)
             this.tags = tags
@@ -162,7 +167,7 @@ class Samehadaku : MainAPI() {
         val document = app.get(data).document
 
         document.select("div#downloadb li").map { el ->
-            el.select("a").apmap {
+            el.select("a").amap {
                 loadFixedExtractor(
                         fixUrl(it.attr("href")),
                         el.select("strong").text(),
@@ -182,22 +187,25 @@ class Samehadaku : MainAPI() {
             referer: String? = null,
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
-    ) {
+    ) = coroutineScope {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            name.fixQuality(),
-                            link.type,
-                            link.headers,
-                            link.extractorData
-                    )
-            )
-        }
-    }
+			launch(Dispatchers.IO) {
+				callback.invoke(
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,						
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = name.fixQuality()
+						this.headers = link.headers
+						this.extractorData = link.extractorData
+					}
+				)
+			}
+		}
+    }      
 
     private fun String.fixQuality(): Int {
         return when (this.uppercase()) {

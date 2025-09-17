@@ -5,7 +5,10 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.Session
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 import java.net.URI
 
@@ -120,8 +123,8 @@ class Nekopoi : MainAPI() {
         val episodes = document.select("div.episodelist ul li").mapNotNull {
             val name = it.selectFirst("a")?.text()
             val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-            Episode(link, name = name)
-        }.takeIf { it.isNotEmpty() } ?: listOf(Episode(url, title))
+            newEpisode(link){ this.name = name}
+        }.takeIf { it.isNotEmpty() } ?: listOf(newEpisode(url){ this.name = title})
 
         return newAnimeLoadResponse(title, url, TvType.NSFW) {
             engName = title
@@ -144,43 +147,50 @@ class Nekopoi : MainAPI() {
 
         val res = fetch.get(data).document
 
-        argamap(
-            {
-                res.select("div#show-stream iframe").apmap { iframe ->
-                    loadExtractor(iframe.attr("src"), "$mainUrl/", subtitleCallback, callback)
-                }
-            },
-            {
-                res.select("div.boxdownload div.liner").map { ele ->
-                    getIndexQuality(
-                        ele.select("div.name").text()
-                    ) to ele.selectFirst("a:contains(ouo)")
-                        ?.attr("href")
-                }.filter { it.first != Qualities.P360.value }.map {
-                    val bypassedAds = bypassMirrored(bypassOuo(it.second))
-                    bypassedAds.apmap ads@{ adsLink ->
-                        loadExtractor(
-                            fixEmbed(adsLink) ?: return@ads,
-                            "$mainUrl/",
-                            subtitleCallback,
-                        ) { link ->
-                            callback.invoke(
-                                ExtractorLink(
-                                    link.name,
-                                    link.name,
-                                    link.url,
-                                    link.referer,
-                                    if (link.type == ExtractorLinkType.M3U8) link.quality else it.first,
-                                    link.type,
-                                    link.headers,
-                                    link.extractorData
-                                )
-                            )
-                        }
+        runAllAsync(
+                {
+                    res.select("div#show-stream iframe").amap { iframe ->
+                        loadExtractor(iframe.attr("src"), "$mainUrl/", subtitleCallback, callback)
                     }
+                },
+                {
+                    res.select("div.boxdownload div.liner").map { ele ->
+						getIndexQuality(ele.select("div.name").text()) to
+							ele.selectFirst("a:contains(ouo)")?.attr("href")
+					}.filter { it.first != Qualities.P360.value }.map { (quality, ouoUrl) ->
+						val bypassedAds = bypassMirrored(bypassOuo(ouoUrl))
+						bypassedAds.amap ads@{ adsLink ->
+							coroutineScope {
+								loadExtractor(
+                                    fixEmbed(adsLink).toString(),
+									"$mainUrl/",
+									subtitleCallback,
+								) { link ->
+									launch(Dispatchers.IO) {
+										callback.invoke(
+											newExtractorLink(
+												link.name,
+												link.name,
+												link.url,
+												link.type
+											) {
+												this.referer = link.referer
+												this.quality = if (link.type == ExtractorLinkType.M3U8) {
+													link.quality
+												} else {
+													quality
+												}
+												this.headers = link.headers
+												this.extractorData = link.extractorData
+											}
+										)
+									}
+								}
+							}
+						}
+					}
                 }
-            }
-        )
+            )
 
         return true
     }
@@ -247,11 +257,11 @@ class Nekopoi : MainAPI() {
         ).document.select("table.hoverable tbody tr")
             .filter { mirror ->
                 !mirrorIsBlackList(mirror.selectFirst("img")?.attr("alt"))
-            }.apmap {
+            }.amap {
                 val fileLink = it.selectFirst("a")?.attr("href")
                 session.get(
                     fixUrl(
-                        fileLink ?: return@apmap null,
+                        fileLink ?: return@amap null,
                         mirroredHost
                     )
                 ).document.selectFirst("div.code_wrap code")?.text()

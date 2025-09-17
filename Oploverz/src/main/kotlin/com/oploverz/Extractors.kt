@@ -20,17 +20,16 @@ open class Qiwi : ExtractorApi() {
         val source = document.select("video source").attr("src")
 
         callback.invoke(
-                ExtractorLink(
-                        this.name,
-                        this.name,
-                        source,
-                        "$mainUrl/",
-                        getIndexQuality(title),
-                        headers =
-                                mapOf(
-                                        "Range" to "bytes=0-",
-                                )
-                )
+			newExtractorLink(
+                    name,
+                    name,
+                    source
+                ){
+					this.referer = "$mainUrl/"
+					this.quality = getIndexQuality(title)
+					this.headers = mapOf("Range" to "bytes=0-")
+				}
+                
         )
     }
 

@@ -9,6 +9,10 @@ import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -127,7 +131,7 @@ class Otakudesu : MainAPI() {
                                     Regex("Episode\\s?(\\d+)").find(name)?.groupValues?.getOrNull(0)
                                             ?: it.selectFirst("a")?.text()
                             val link = fixUrl(it.selectFirst("a")!!.attr("href"))
-                            Episode(link, episode = episode?.toIntOrNull())
+                            newEpisode(link){this.episode = episode?.toIntOrNull()}
                         }
                         .reversed()
 
@@ -175,70 +179,70 @@ class Otakudesu : MainAPI() {
 
         val document = app.get(data).document
 
-        argamap(
+        runAllAsync(
                 {
                     val scriptData =
-                            document.select("script:containsData(action:)").lastOrNull()?.data()
+                        document.select("script:containsData(action:)").lastOrNull()?.data()
                     val token =
-                            scriptData
-                                    ?.substringAfter("{action:\"")
-                                    ?.substringBefore("\"}")
-                                    .toString()
+                        scriptData
+                            ?.substringAfter("{action:\"")
+                            ?.substringBefore("\"}")
+                            .toString()
 
                     val nonce =
-                            app.post(
-                                            "$mainUrl/wp-admin/admin-ajax.php",
-                                            data = mapOf("action" to token)
-                                    )
-                                    .parsed<ResponseData>()
-                                    .data
+                        app.post(
+                            "$mainUrl/wp-admin/admin-ajax.php",
+                            data = mapOf("action" to token)
+                        )
+                            .parsed<ResponseData>()
+                            .data
                     val action =
-                            scriptData
-                                    ?.substringAfter(",action:\"")
-                                    ?.substringBefore("\"}")
-                                    .toString()
+                        scriptData
+                            ?.substringAfter(",action:\"")
+                            ?.substringBefore("\"}")
+                            .toString()
 
                     val mirrorData =
-                            document.select("div.mirrorstream > ul > li")
-                                    .mapNotNull {
-                                        base64Decode(it.select("a").attr("data-content"))
-                                    }
-                                    .toString()
+                        document.select("div.mirrorstream > ul > li")
+                            .mapNotNull {
+                                base64Decode(it.select("a").attr("data-content"))
+                            }
+                            .toString()
 
-                    tryParseJson<List<ResponseSources>>(mirrorData)?.apmap { res ->
+                    tryParseJson<List<ResponseSources>>(mirrorData)?.amap { res ->
                         val id = res.id
                         val i = res.i
                         val q = res.q
 
                         val sources =
-                                Jsoup.parse(
-                                                base64Decode(
-                                                        app.post(
-                                                                        "${mainUrl}/wp-admin/admin-ajax.php",
-                                                                        data =
-                                                                                mapOf(
-                                                                                        "id" to id,
-                                                                                        "i" to i,
-                                                                                        "q" to q,
-                                                                                        "nonce" to
-                                                                                                nonce,
-                                                                                        "action" to
-                                                                                                action
-                                                                                )
-                                                                )
-                                                                .parsed<ResponseData>()
-                                                                .data
-                                                )
-                                        )
-                                        .select("iframe")
-                                        .attr("src")
+                            Jsoup.parse(
+                                base64Decode(
+                                    app.post(
+                                        "${mainUrl}/wp-admin/admin-ajax.php",
+                                        data =
+                                            mapOf(
+                                                "id" to id,
+                                                "i" to i,
+                                                "q" to q,
+                                                "nonce" to
+                                                        nonce,
+                                                "action" to
+                                                        action
+                                            )
+                                    )
+                                        .parsed<ResponseData>()
+                                        .data
+                                )
+                            )
+                                .select("iframe")
+                                .attr("src")
 
                         loadCustomExtractor(
-                                sources,
-                                data,
-                                subtitleCallback,
-                                callback,
-                                getQuality(q)
+                            sources,
+                            data,
+                            subtitleCallback,
+                            callback,
+                            getQuality(q)
                         )
                     }
                 },
@@ -246,23 +250,23 @@ class Otakudesu : MainAPI() {
                     document.select("div.download li").map { ele ->
                         val quality = getQuality(ele.select("strong").text())
                         ele.select("a")
-                                .map { it.attr("href") to it.text() }
-                                .filter {
-                                    !inBlacklist(it.first) && quality != Qualities.P360.value
-                                }
-                                .apmap {
-                                    val link = app.get(it.first, referer = "$mainUrl/").url
-                                    loadCustomExtractor(
-                                            fixedIframe(link),
-                                            data,
-                                            subtitleCallback,
-                                            callback,
-                                            quality
-                                    )
-                                }
+                            .map { it.attr("href") to it.text() }
+                            .filter {
+                                !inBlacklist(it.first) && quality != Qualities.P360.value
+                            }
+                            .amap {
+                                val link = app.get(it.first, referer = "$mainUrl/").url
+                                loadCustomExtractor(
+                                    fixedIframe(link),
+                                    data,
+                                    subtitleCallback,
+                                    callback,
+                                    quality
+                                )
+                            }
                     }
                 }
-        )
+            )
 
         return true
     }
@@ -273,22 +277,25 @@ class Otakudesu : MainAPI() {
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit,
             quality: Int = Qualities.Unknown.value,
-    ) {
+    ) = coroutineScope {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            quality,
-                            link.type,
-                            link.headers,
-                            link.extractorData
-                    )
-            )
-        }
-    }
+			launch(Dispatchers.IO) {
+				callback.invoke(
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,						
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = quality
+						this.headers = link.headers
+						this.extractorData = link.extractorData
+					}
+				)
+			}
+		}
+    }       
 
     private fun fixedIframe(url: String): String {
         return when {

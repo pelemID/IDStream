@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
@@ -112,7 +113,7 @@ class NontonAnimeID : MainAPI() {
             document.select("span.statusseries").text().trim()
         )
         val type = getType(document.select("span.typeseries").text().trim().lowercase())
-        val rating = document.select("span.nilaiseries").text().trim().toIntOrNull()
+        val rating = document.select("span.nilaiseries").text().trim()
         val description = document.select(".entry-content.seriesdesc > p").text().trim()
         val trailer = document.selectFirst("a.trailerbutton")?.attr("href")
 
@@ -136,7 +137,7 @@ class NontonAnimeID : MainAPI() {
                     it.selectFirst("a")?.text().toString()
                 )?.groupValues?.getOrNull(0) ?: it.selectFirst("a")?.text()
                 val link = fixUrl(it.selectFirst("a")!!.attr("href"))
-                Episode(link, episode = episode?.toIntOrNull())
+                newEpisode(link){this.episode = episode?.toIntOrNull()}
             }.reversed()
         } else {
             document.select("ul.misha_posts_wrap2 > li").map {
@@ -144,7 +145,7 @@ class NontonAnimeID : MainAPI() {
                     it.selectFirst("a")?.text().toString()
                 )?.groupValues?.getOrNull(0) ?: it.selectFirst("a")?.text()
                 val link = it.select("a").attr("href")
-                Episode(link, episode = episode?.toIntOrNull())
+                newEpisode(link){this.episode = episode?.toIntOrNull()}
             }.reversed()
         }
 
@@ -167,7 +168,7 @@ class NontonAnimeID : MainAPI() {
             this.year = year
             addEpisodes(DubStatus.Subbed, episodes)
             showStatus = status
-            this.rating = rating
+            addScore(rating)
             plot = description
             addTrailer(trailer)
             this.tags = tags
@@ -193,7 +194,7 @@ class NontonAnimeID : MainAPI() {
                     AppUtils.parseJson<Map<String, String>>(base64Decode(it).substringAfter("="))["nonce"]
                 }
 
-        document.select(".container1 > ul > li:not(.boxtab)").apmap {
+        document.select(".container1 > ul > li:not(.boxtab)").amap {
             val dataPost = it.attr("data-post")
             val dataNume = it.attr("data-nume")
             val dataType = it.attr("data-type")
@@ -211,7 +212,7 @@ class NontonAnimeID : MainAPI() {
                 headers = mapOf("X-Requested-With" to "XMLHttpRequest")
             ).document.selectFirst("iframe")?.attr("src")
 
-            loadExtractor(iframe ?: return@apmap, "$mainUrl/", subtitleCallback, callback)
+            loadExtractor(iframe ?: return@amap, "$mainUrl/", subtitleCallback, callback)
         }
 
         return true

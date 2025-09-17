@@ -132,7 +132,9 @@ class Kuramanime : MainAPI() {
                                                 ?.getOrNull(0)
                                                 ?.toIntOrNull()
                                 val link = it.attr("href")
-                                Episode(link, episode = episode)
+                                newEpisode(link){
+									this.episode = episode
+								}
                             }
             if (eps.isEmpty()) break else episodes.addAll(eps)
         }

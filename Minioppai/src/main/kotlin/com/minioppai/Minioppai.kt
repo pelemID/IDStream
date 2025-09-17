@@ -106,7 +106,9 @@ class Minioppai : MainAPI() {
         val episodes = document.select("div.epsdlist ul li").mapNotNull {
             val name = it.selectFirst("div.epl-num")?.text()
             val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-            Episode(link, name = name)
+            newEpisode(link){
+				this.name = name
+			}
         }
 
         return newAnimeLoadResponse(title, url, TvType.NSFW) {
@@ -129,7 +131,7 @@ class Minioppai : MainAPI() {
         val document = app.get(data).document
         document.select("div.server ul.mirror li a").mapNotNull {
             Jsoup.parse(base64Decode(it.attr("data-em"))).select("iframe").attr("src")
-        }.apmap { link ->
+        }.amap { link ->
             loadExtractor(
                 fixUrl(decode(link.substringAfter("data="))),
                 mainUrl,

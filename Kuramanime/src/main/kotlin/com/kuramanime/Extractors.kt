@@ -9,6 +9,7 @@ import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Nyomo : StreamSB() {
     override var name: String = "Nyomo"
@@ -47,13 +48,14 @@ open class Lbx : ExtractorApi() {
                 ?.resolutionList
                 ?.map { link ->
                     callback.invoke(
-                            ExtractorLink(
-                                    name,
-                                    name,
-                                    link.url ?: return@map null,
-                                    "$realUrl/",
-                                    getQualityFromName(link.resolution)
-                            )
+						newExtractorLink(
+							name,
+							name,
+							link.url ?: return@map null
+						){
+							this.referer = "$realUrl/"
+							this.quality = getQualityFromName(link.resolution)
+						}
                     )
                 }
     }
@@ -109,14 +111,15 @@ open class Kuramadrive : ExtractorApi() {
                         )
                         .parsedSafe<Source>()
 
-        callback.invoke(
-                ExtractorLink(
-                        name,
-                        name,
-                        json?.url ?: return,
-                        "$mainUrl/",
-                        getIndexQuality(title),
-                )
+        callback.invoke(               
+				newExtractorLink(
+					name,
+					name,
+					json?.url ?: return
+				){
+					this.referer = "$mainUrl/"
+					this.quality = getIndexQuality(title)
+				}
         )
     }
 

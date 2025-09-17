@@ -7,6 +7,9 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 
@@ -119,7 +122,7 @@ class Nimegami : MainAPI() {
                                     ?.getOrNull(0)
                                     ?.toIntOrNull()
                     val link = it.attr("data")
-                    Episode(link, episode = episode)
+                    newEpisode(link){this.episode = episode}
                 }
 
         val recommendations =
@@ -161,7 +164,7 @@ class Nimegami : MainAPI() {
     ): Boolean {
 
         tryParseJson<ArrayList<Sources>>(base64Decode(data))?.map { sources ->
-            sources.url?.apmap { url ->
+            sources.url?.amap { url ->
                 loadFixedExtractor(url, sources.format, "$mainUrl/", subtitleCallback, callback)
             }
         }
@@ -175,21 +178,24 @@ class Nimegami : MainAPI() {
             referer: String? = null,
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
-    ) {
+    ) = coroutineScope {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            getQualityFromName(quality),
-                            link.type,
-                            link.headers,
-                            link.extractorData
-                    )
-            )
-        }
+			launch(Dispatchers.IO) {
+				callback.invoke(
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,						
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = getQualityFromName(quality)
+						this.headers = link.headers
+						this.extractorData = link.extractorData
+					}
+				)
+			}
+		}
     }
 
     private fun Elements.getContent(css: String): Elements {
