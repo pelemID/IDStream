@@ -79,7 +79,13 @@ class Funmovieslix : MainAPI() {
                 val ep = Regex("Eps(\\d+)").find(text)?.groupValues?.get(1)?.toIntOrNull()
                 val name = "Episode $ep"
                 val href = info.attr("href")
-                episodes.add(Episode(data = href, episode = ep, name = name, season = season))
+                episodes.add(
+                    newEpisode(href) {
+					    this.season = season
+                        this.name = name
+					    this.episode = ep
+				    }
+                )
             }
 
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
