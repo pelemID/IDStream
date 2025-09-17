@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 
 class Oploverz : MainAPI() {
-    override var mainUrl = "https://oploverz.media"
+    override var mainUrl = "https://anime.oploverz.ac"
     override var name = "Oploverz"
     override val hasMainPage = true
     override var lang = "id"
