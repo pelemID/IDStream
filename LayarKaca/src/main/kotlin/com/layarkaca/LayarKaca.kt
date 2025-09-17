@@ -1,9 +1,9 @@
 package com.layarkaca
 
-import com.lagradost.cloudstream3.Episode
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
@@ -12,18 +12,17 @@ import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.addQuality
 import com.lagradost.cloudstream3.addSub
-import com.lagradost.cloudstream3.apmap
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
 import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newAnimeSearchResponse
+import com.lagradost.cloudstream3.newEpisode
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import kotlinx.coroutines.Dispatchers
@@ -133,7 +132,7 @@ class LayarKaca : MainAPI() {
         val description = document.select("div.content > blockquote").text().trim()
         val trailer = document.selectFirst("div.action-player li > a.fancybox")?.attr("href")
         val rating =
-                document.selectFirst("div.content > div:nth-child(6) > h3")?.text()?.toRatingInt()
+                document.selectFirst("div.content > div:nth-child(6) > h3")?.text()
         val actors =
                 document.select("div.col-xs-9.content > div:nth-child(3) > h3 > a").map {
                     it.text()
@@ -165,12 +164,11 @@ class LayarKaca : MainAPI() {
                                                 .substringAfter("season-")
                                                 .substringBefore("-")
                                                 .toIntOrNull()
-                                Episode(
-                                        href,
-                                        "Episode $episode",
-                                        season,
-                                        episode,
-                                )
+                                newEpisode(href){
+                                    this.name = "Episode $episode"
+                                    this.season = season
+                                    this.episode = episode
+                                }
                             }
                             .reversed()
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
@@ -178,7 +176,7 @@ class LayarKaca : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -189,7 +187,7 @@ class LayarKaca : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -205,7 +203,7 @@ class LayarKaca : MainAPI() {
     ): Boolean {
 
         val document = app.get(data).document
-        document.select("ul#loadProviders > li").map { fixUrl(it.select("a").attr("href")) }.apmap {
+        document.select("ul#loadProviders > li").map { fixUrl(it.select("a").attr("href")) }.forEach {
             loadExtractor(it.getIframe(), "https://nganunganu.sbs", subtitleCallback, callback)
         }
 

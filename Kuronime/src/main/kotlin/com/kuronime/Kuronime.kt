@@ -11,6 +11,10 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 import java.net.URI
 import java.util.ArrayList
@@ -150,7 +154,7 @@ class Kuronime : MainAPI() {
             val name = it.selectFirst("a")?.text() ?: return@mapNotNull null
             val episode =
                 Regex("(\\d+[.,]?\\d*)").find(name)?.groupValues?.getOrNull(0)?.toIntOrNull()
-            Episode(link, episode = episode)
+            newEpisode(link){ this.episode = episode}
         }.reversed()
 
         val tracker = APIHolder.getTracker(listOf(title),TrackerType.getTypes(type),year,true)
@@ -187,44 +191,44 @@ class Kuronime : MainAPI() {
             ), referer = "$mainUrl/"
         ).parsedSafe<Servers>()
 
-        argamap(
-            {
-                val decrypt = AesHelper.cryptoAESHandler(
-                    base64Decode(servers?.src ?: return@argamap),
-                    KEY.toByteArray(),
-                    false,
-                    "AES/CBC/NoPadding"
-                )
-                val source =
-                    tryParseJson<Sources>(decrypt?.toJsonFormat())?.src?.replace("\\", "")
-                M3u8Helper.generateM3u8(
-                    this.name,
-                    source ?: return@argamap,
-                    "$animekuUrl/",
-                    headers = mapOf("Origin" to animekuUrl)
-                ).forEach(callback)
-            },
-            {
-                val decrypt = AesHelper.cryptoAESHandler(
-                    base64Decode(servers?.mirror ?: return@argamap),
-                    KEY.toByteArray(),
-                    false,
-                    "AES/CBC/NoPadding"
-                )
-                tryParseJson<Mirrors>(decrypt)?.embed?.map { embed ->
-                    embed.value.apmap {
-                        loadFixedExtractor(
-                            it.value,
-                            embed.key.removePrefix("v"),
-                            "$mainUrl/",
-                            subtitleCallback,
-                            callback
-                        )
+        runAllAsync(
+                {
+                    val decrypt = AesHelper.cryptoAESHandler(
+                        base64Decode(servers?.src ?: return@runAllAsync),
+                        KEY.toByteArray(),
+                        false,
+                        "AES/CBC/NoPadding"
+                    )
+                    val source =
+                        tryParseJson<Sources>(decrypt?.toJsonFormat())?.src?.replace("\\", "")
+                    M3u8Helper.generateM3u8(
+                        this.name,
+                        source ?: return@runAllAsync,
+                        "$animekuUrl/",
+                        headers = mapOf("Origin" to animekuUrl)
+                    ).forEach(callback)
+                },
+                {
+                    val decrypt = AesHelper.cryptoAESHandler(
+                        base64Decode(servers?.mirror ?: return@runAllAsync),
+                        KEY.toByteArray(),
+                        false,
+                        "AES/CBC/NoPadding"
+                    )
+                    tryParseJson<Mirrors>(decrypt)?.embed?.map { embed ->
+                        embed.value.amap {
+                            loadFixedExtractor(
+                                it.value,
+                                embed.key.removePrefix("v"),
+                                "$mainUrl/",
+                                subtitleCallback,
+                                callback
+                            )
+                        }
                     }
-                }
 
-            }
-        )
+                }
+            )
 
         return true
     }
@@ -235,25 +239,27 @@ class Kuronime : MainAPI() {
     }
 
     private suspend fun loadFixedExtractor(
-        url: String? = null,
+        url: String,
         quality: String? = null,
         referer: String? = null,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ) {
-        loadExtractor(url ?: return, referer, subtitleCallback) { link ->
-            callback.invoke(
-                ExtractorLink(
-                    link.name,
-                    link.name,
-                    link.url,
-                    link.referer,
-                    getQualityFromName(quality),
-                    link.type,
-                    link.headers,
-                    link.extractorData
-                )
-            )
+    ) = coroutineScope {
+        loadExtractor(url, referer, subtitleCallback) { link ->
+            launch(Dispatchers.IO) {
+				callback.invoke(               
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = getQualityFromName(quality)
+						this.headers = link.headers
+					}
+				)
+            }
         }
     }
 

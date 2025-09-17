@@ -4,7 +4,7 @@ import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 open class ZippyShare : ExtractorApi() {
     override val name = "ZippyShare"
@@ -20,13 +20,13 @@ open class ZippyShare : ExtractorApi() {
         val res = app.get(url, referer = referer).document
         val video = res.selectFirst("a#download-url")?.attr("href")
         callback.invoke(
-            ExtractorLink(
-                this.name,
-                this.name,
-                video ?: return,
-                "$mainUrl/",
-                Qualities.Unknown.value
-            )
+			newExtractorLink(
+                name,
+                name,
+                video ?: return
+            ){
+				this.referer = "$mainUrl/"
+			}
         )
     }
 }

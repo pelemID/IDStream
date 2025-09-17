@@ -2,6 +2,7 @@ package com.gomov
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.httpsify
@@ -108,7 +109,6 @@ open class Gomov : MainAPI() {
         val rating =
                 document.selectFirst("div.gmr-meta-rating > span[itemprop=ratingValue]")
                         ?.text()
-                        ?.toRatingInt()
         val actors =
                 document.select("div.gmr-moviedata").last()?.select("span[itemprop=actors]")?.map {
                     it.select("a").text()
@@ -149,7 +149,7 @@ open class Gomov : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -160,7 +160,7 @@ open class Gomov : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -179,19 +179,19 @@ open class Gomov : MainAPI() {
         val id = document.selectFirst("div#muvipro_player_content_id")?.attr("data-id")
 
         if (id.isNullOrEmpty()) {
-            document.select("ul.muvipro-player-tabs li a").apmap { ele ->
+            document.select("ul.muvipro-player-tabs li a").amap { ele ->
                 val iframe =
                         app.get(fixUrl(ele.attr("href")))
                                 .document
                                 .selectFirst("div.gmr-embed-responsive iframe")
                                 .getIframeAttr()
                                 ?.let { httpsify(it) }
-                                ?: return@apmap
+                                ?: return@amap
 
                 loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
             }
         } else {
-            document.select("div.tab-content-ajax").apmap { ele ->
+            document.select("div.tab-content-ajax").amap { ele ->
                 val server =
                         app.post(
                                         "$directUrl/wp-admin/admin-ajax.php",

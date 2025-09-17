@@ -9,6 +9,7 @@ import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.fixUrl
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Paistream : Streampai() {
     override val name = "Paistream"
@@ -45,17 +46,18 @@ open class Streampai : ExtractorApi() {
 
 
         tryParseJson<List<Responses>>("[$sources]")?.forEach {
-            callback.invoke(
-                ExtractorLink(
-                    this.name,
-                    this.name,
-                    fixUrl(it.src),
-                    url,
-                    it.size ?: Qualities.Unknown.value,
-                    headers = mapOf(
+            callback.invoke(                
+				newExtractorLink(
+                    name,
+                    name,
+                    fixUrl(it.src)
+                ){
+					this.referer = url
+					this.quality = it.size ?: Qualities.Unknown.value
+					this.headers = mapOf(
                         "Range" to "bytes=0-",
-                    ),
-                )
+                    )
+				}
             )
         }
 

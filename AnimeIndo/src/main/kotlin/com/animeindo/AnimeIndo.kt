@@ -170,7 +170,7 @@ class AnimeIndo : MainAPI() {
         val recommendations =
                 document.select("div.relat div.animposx").mapNotNull { it.toSearchResult() }
 
-        val tracker = APIHolder.getTracker(listOf(title), TrackerType.getTypes(type), year, true)
+        val tracker = APIHolder.getTracker(listOf(title), TrackerType.getTypes(type), year)
 
         return newAnimeLoadResponse(title, url, type) {
             engName = title

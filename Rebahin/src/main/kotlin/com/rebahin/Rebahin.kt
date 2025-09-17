@@ -3,6 +3,7 @@ package com.rebahin
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.mvvm.safeApiCall
@@ -121,7 +122,7 @@ open class Rebahin : MainAPI() {
         val tvType = if (url.contains("/series/")) TvType.TvSeries else TvType.Movie
         val description = document.select("span[itemprop=reviewBody] > p").text().trim()
         val trailer = fixUrlNull(document.selectFirst("div.modal-body-trailer iframe")?.attr("src"))
-        val rating = document.selectFirst("span[itemprop=ratingValue]")?.text()?.toRatingInt()
+        val rating = document.selectFirst("span[itemprop=ratingValue]")?.text()
         val duration =
                 document.selectFirst(".mvici-right > p:nth-child(1)")!!
                         .ownText()
@@ -140,17 +141,17 @@ open class Rebahin : MainAPI() {
                             .groupBy { it.first }
                             .map { eps ->
                                 newEpisode(
-                                        data = eps.value.map { fixUrl(base64Decode(it.second)) }.toString(),
-                                        name = eps.key,
-                                        episode = eps.key.filter { it.isDigit() }.toIntOrNull()
-                                )
+                                        eps.value.map { fixUrl(base64Decode(it.second)) }.toString()){
+                                        this.name = eps.key
+                                        this.episode = eps.key.filter { it.isDigit() }.toIntOrNull()
+                                }
                             }
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 this.duration = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -167,7 +168,7 @@ open class Rebahin : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 this.duration = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -182,7 +183,7 @@ open class Rebahin : MainAPI() {
             callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        data.removeSurrounding("[", "]").split(",").map { it.trim() }.apmap { link ->
+        data.removeSurrounding("[", "]").split(",").map { it.trim() }.amap { link ->
             safeApiCall {
                 when {
                     link.startsWith(mainServer) ->

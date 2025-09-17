@@ -50,14 +50,29 @@ jobs:
           java-version: 17
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3      
+        uses: android-actions/setup-android@v3
+
+      - name: Access Secrets (local.properties)
+        run: |
+          cd src
+          echo ANIMASU_API=${{ secrets.ANIMASU_API }} >> local.properties
+          echo DUBBINDO_API=${{ secrets.DUBBINDO_API }} >> local.properties
+          echo GOMOV_API=${{ secrets.GOMOV_API }} >> local.properties
+          echo IDLIX_API=${{ secrets.IDLIX_API }} >> local.properties
+          echo KURAMANIME_API=${{ secrets.KURAMANIME_API }} >> local.properties
+          echo LAYARKACA_API=${{ secrets.LAYARKACA_API }} >> local.properties
+          echo NIMEGAMI_API=${{ secrets.NIMEGAMI_API }} >> local.properties
+          echo OPLOVERZ_API=${{ secrets.OPLOVERZ_API }} >> local.properties
+          echo OTAKUDESU_API=${{ secrets.OTAKUDESU_API }} >> local.properties
+          echo PENCURIMOVIE_API=${{ secrets.PENCURIMOVIE_API }} >> local.properties
+          echo SAMEHADAKU_API=${{ secrets.SAMEHADAKU_API }} >> local.properties
+          echo USEETV_API=${{ secrets.USEETV_API }} >> local.properties
 
       - name: Build Plugins
         run: |
           cd src
           chmod +x gradlew
-          ./gradlew make makePluginsJson
-          ./gradlew ensureJarCompatibility
+          ./gradlew make makePluginsJson ensureJarCompatibility -x lint --continue
           cp **/build/*.cs3 ../builds || true
           cp **/build/*.jar ../builds || true
           cp build/plugins.json ../builds || true

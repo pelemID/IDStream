@@ -8,6 +8,7 @@ import com.lagradost.cloudstream3.extractors.Hxfile
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 open class Gdplayer : ExtractorApi() {
     override val name = "Gdplayer"
@@ -33,13 +34,13 @@ open class Gdplayer : ExtractorApi() {
 
         json?.sources?.map {
             callback.invoke(
-                    ExtractorLink(
-                            this.name,
-                            this.name,
-                            it.file ?: return@map,
-                            "",
-                            getQuality(json.title)
-                    )
+				newExtractorLink(
+                    name,
+                    name,
+                    it.file ?: return@map
+                ){					
+					this.quality = getQuality(json.title)
+				}
             )
         }
     }

@@ -4,6 +4,9 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.utils.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jsoup.nodes.Element
 
 class Oploverz : MainAPI() {
@@ -121,7 +124,7 @@ class Oploverz : MainAPI() {
                             val header = it.selectFirst("a") ?: return@mapNotNull null
                             val episode = header.text().trim().toIntOrNull()
                             val link = fixUrl(header.attr("href"))
-                            Episode(link, episode = episode)
+                            newEpisode(link){ this.episode = episode}
                         }
                         .reversed()
 
@@ -152,51 +155,51 @@ class Oploverz : MainAPI() {
 
         val document = app.get(data).document
 
-        argamap(
+        runAllAsync(
                 {
-                    document.select("div#server ul li div").apmap {
+                    document.select("div#server ul li div").amap {
                         val dataPost = it.attr("data-post")
                         val dataNume = it.attr("data-nume")
                         val dataType = it.attr("data-type")
 
                         val iframe =
-                                app.post(
-                                                url = "$mainUrl/wp-admin/admin-ajax.php",
-                                                data =
-                                                        mapOf(
-                                                                "action" to "player_ajax",
-                                                                "post" to dataPost,
-                                                                "nume" to dataNume,
-                                                                "type" to dataType
-                                                        ),
-                                                referer = data,
-                                                headers =
-                                                        mapOf(
-                                                                "X-Requested-With" to
-                                                                        "XMLHttpRequest"
-                                                        )
-                                        )
-                                        .document
-                                        .select("iframe")
-                                        .attr("src")
+                            app.post(
+                                url = "$mainUrl/wp-admin/admin-ajax.php",
+                                data =
+                                    mapOf(
+                                        "action" to "player_ajax",
+                                        "post" to dataPost,
+                                        "nume" to dataNume,
+                                        "type" to dataType
+                                    ),
+                                referer = data,
+                                headers =
+                                    mapOf(
+                                        "X-Requested-With" to
+                                                "XMLHttpRequest"
+                                    )
+                            )
+                                .document
+                                .select("iframe")
+                                .attr("src")
 
                         loadExtractor(fixUrl(iframe), "$mainUrl/", subtitleCallback, callback)
                     }
                 },
                 {
-                    document.select("div#download tr").apmap { el ->
-                        el.select("a").apmap {
+                    document.select("div#download tr").amap { el ->
+                        el.select("a").amap {
                             loadFixedExtractor(
-                                    fixUrl(it.attr("href")),
-                                    el.select("strong").text(),
-                                    "$mainUrl/",
-                                    subtitleCallback,
-                                    callback
+                                fixUrl(it.attr("href")),
+                                el.select("strong").text(),
+                                "$mainUrl/",
+                                subtitleCallback,
+                                callback
                             )
                         }
                     }
                 }
-        )
+            )
 
         return true
     }
@@ -207,22 +210,25 @@ class Oploverz : MainAPI() {
             referer: String? = null,
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
-    ) {
+    ) = coroutineScope {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            name.fixQuality(),
-                            link.type,
-                            link.headers,
-                            link.extractorData
-                    )
-            )
-        }
-    }
+			launch(Dispatchers.IO) {
+				callback.invoke(
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,						
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = name.fixQuality()
+						this.headers = link.headers
+						this.extractorData = link.extractorData
+					}
+				)
+			}
+		}
+    }        
 
     private fun String.fixQuality(): Int {
         return when (this) {

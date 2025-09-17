@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.mvvm.safeApiCall
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
@@ -133,7 +133,9 @@ class Gomunime : MainAPI() {
                 Regex("(Episode\\s?[0-9]+)").find(it.epTitle.toString())?.groupValues?.getOrNull(0)
                     ?: it.epTitle
             val link = it.epLink
-            Episode(link, name)
+            newEpisode(link) {
+				this.name = name
+			}
         }.reversed()
 
         return newAnimeLoadResponse(title, url, TvType.Anime) {
@@ -172,7 +174,7 @@ class Gomunime : MainAPI() {
             )
         }
 
-        sources.apmap {
+        sources.amap {
             safeApiCall {
                 when {
                     it.second.contains("frame") -> {
@@ -197,14 +199,15 @@ class Gomunime : MainAPI() {
                             url = mainServer,
                             data = mapOf("data" to it.first, "func" to "blogs")
                         ).parsed<List<MobiSource>>().map {
-                            callback.invoke(
-                                ExtractorLink(
-                                    source = name,
-                                    name = "Mobi SD",
-                                    url = it.file,
-                                    referer = "$mainUrl/",
-                                    quality = Qualities.P360.value
-                                )
+                            callback.invoke(                                
+								newExtractorLink(
+									name,
+									"Mobi SD",
+									it.file
+								){
+									this.referer = "$mainUrl/"
+									this.quality = Qualities.P360.value
+								}								
                             )
                         }
                     }

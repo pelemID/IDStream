@@ -2,8 +2,8 @@ package com.idlix
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.Episode
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.*
 import java.net.URI
@@ -130,7 +130,7 @@ class Idlix : MainAPI() {
                 else TvType.Movie
         val description = document.select("div.wp-content > p").text().trim()
         val trailer = document.selectFirst("div.embed iframe")?.attr("src")
-        val rating = document.selectFirst("span.dt_rating_vgs")?.text()?.toRatingInt()
+        val rating = document.selectFirst("span.dt_rating_vgs")?.text()
         val actors =
                 document.select("div.persons > div[itemprop=actor]").map {
                     Actor(
@@ -174,14 +174,20 @@ class Idlix : MainAPI() {
                                         .split("-")
                                         .first()
                                         .toIntOrNull()
-                        Episode(href, name, season, episode, image)
+                        //Episode(href, name, season, episode, image)
+						newEpisode(href) {
+							this.name = name
+							this.season = season
+							this.episode = episode
+							this.posterUrl = image
+						}
                     }
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -192,7 +198,7 @@ class Idlix : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
                 addTrailer(trailer)
@@ -211,7 +217,7 @@ class Idlix : MainAPI() {
 
         document.select("ul#playeroptionsul > li")
                 .map { Triple(it.attr("data-post"), it.attr("data-nume"), it.attr("data-type")) }
-                .apmap { (id, nume, type) ->
+                .amap { (id, nume, type) ->
                     try {
                         val json =
                                 app.post(
@@ -232,15 +238,15 @@ class Idlix : MainAPI() {
                                                         )
                                         )
                                         .parsedSafe<ResponseHash>()
-                                        ?: return@apmap
+                                        ?: return@amap
 
                         val password = createKey(json.key, json.embedurl)
-                        val decrypted = CryptoJsAes.decrypt(json.embedurl, password) ?: return@apmap
+                        val decrypted = CryptoJsAes.decrypt(json.embedurl, password) ?: return@amap
 
                         val embedJson =
                                 AppUtils.tryParseJson<Map<String, String>>(decrypted as String?)
-                                        ?: return@apmap
-                        val hash = embedJson["m"]?.split("/")?.last() ?: return@apmap
+                                        ?: return@amap
+                        val hash = embedJson["m"]?.split("/")?.last() ?: return@amap
 
                         getUrl(
                                 url =

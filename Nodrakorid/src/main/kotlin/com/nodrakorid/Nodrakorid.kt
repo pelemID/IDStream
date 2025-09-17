@@ -8,6 +8,9 @@ import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.net.URI
 import org.jsoup.nodes.Element
 
@@ -94,10 +97,10 @@ class Nodrakorid : MainAPI() {
                                                                             }
                                                                 }
                                                                 .filter { it.first != null }
-                                                Episode(
-                                                        siblings.toJson(),
-                                                        episode = eps.text().toEpisode()
-                                                )
+                                                newEpisode(
+                                                        siblings.toJson()){
+                                                        this.episode = eps.text().toEpisode()
+                                                }
                                             }
                                 }
                                 else -> {
@@ -117,10 +120,10 @@ class Nodrakorid : MainAPI() {
                                                                     }
                                                         }
                                                         ?.filter { it.first != null }
-                                        Episode(
-                                                siblings?.toJson() ?: return@mapNotNull null,
-                                                episode = eps.text().toEpisode()
-                                        )
+                                        newEpisode(
+                                                siblings?.toJson() ?: return@mapNotNull null){
+                                                this.episode = eps.text().toEpisode()
+                                        }
                                     }
                                 }
                             }
@@ -138,7 +141,7 @@ class Nodrakorid : MainAPI() {
         updateUrl()
         return if (data.startsWith("[")) {
             tryParseJson<ArrayList<LinkData>>(data)?.filter { it.first != 360 }?.map {
-                it.second.apmap { link ->
+                it.second.amap { link ->
                     loadFixedExtractor(
                             fixEmbed(link.first, link.second),
                             it.first,
@@ -191,23 +194,26 @@ class Nodrakorid : MainAPI() {
             referer: String? = null,
             subtitleCallback: (SubtitleFile) -> Unit,
             callback: (ExtractorLink) -> Unit
-    ) {
+    ) = coroutineScope {
         loadExtractor(url, referer, subtitleCallback) { link ->
-            callback.invoke(
-                    ExtractorLink(
-                            link.name,
-                            link.name,
-                            link.url,
-                            link.referer,
-                            if (link.type == ExtractorLinkType.M3U8) link.quality
-                            else quality ?: Qualities.Unknown.value,
-                            link.type,
-                            link.headers,
-                            link.extractorData
-                    )
-            )
-        }
-    }
+			launch(Dispatchers.IO) {
+				callback.invoke(
+					newExtractorLink(
+						link.name,
+						link.name,
+						link.url,						
+						link.type
+					){
+						this.referer = link.referer
+						this.quality = if (link.type == ExtractorLinkType.M3U8) link.quality
+                            else quality ?: Qualities.Unknown.value
+						this.headers = link.headers
+						this.extractorData = link.extractorData
+					}
+				)
+			}
+		}
+    } 
 
     private fun Element.nextElementSiblingsUntil(untilElement: Element?): List<Element> {
         val siblings = mutableListOf<Element>()

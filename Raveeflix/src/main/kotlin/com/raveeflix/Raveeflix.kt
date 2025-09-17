@@ -3,6 +3,7 @@ package com.raveeflix
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
@@ -106,7 +107,6 @@ class Raveeflix : MainAPI() {
                 ?.text()?.trim()
         val rating =
             document.selectFirst("span#rating")?.text()
-                ?.toRatingInt()
         val actors =
             document.select("span#cast").text().split(", ")
                 .map { it.trim() }
@@ -119,7 +119,7 @@ class Raveeflix : MainAPI() {
             val section = document.select(sectionSelector)
             val hasMultipleSeason = section.any { it.attr("href").contains("/season-") }
             val episodes = if (hasMultipleSeason) {
-                section.apmap { ss ->
+                section.amap { ss ->
                     fetchEpisodesFromPages(
                         ss.attr("href"),
                         5,
@@ -138,7 +138,7 @@ class Raveeflix : MainAPI() {
                 this.seasonNames
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
             }
@@ -148,7 +148,7 @@ class Raveeflix : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                addScore(rating)
                 addActors(actors)
                 this.recommendations = recommendations
             }
@@ -165,13 +165,11 @@ class Raveeflix : MainAPI() {
         val video = app.get(data).document.select("mux-player").attr("src")
 
         callback.invoke(
-            ExtractorLink(
-                name,
-                name,
-                video,
-                "",
-                Qualities.Unknown.value,
-            )
+			newExtractorLink(
+                    name,
+                    name,
+                    video
+                )
         )
 
         return true
@@ -201,12 +199,12 @@ class Raveeflix : MainAPI() {
             val href = fixUrl(eps.attr("href"))
             val posterUrl =
                 eps.selectFirst("div.thumbnail_card")?.attr("style")?.getPoster()
-            Episode(
-                href,
-                name,
-                posterUrl = posterUrl,
-                season = season
-            )
+            newEpisode(
+                href){
+                this.name = name
+                this.posterUrl = posterUrl
+                this.season = season
+            }
         }
     }
 
