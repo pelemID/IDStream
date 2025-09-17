@@ -133,7 +133,9 @@ class Gomunime : MainAPI() {
                 Regex("(Episode\\s?[0-9]+)").find(it.epTitle.toString())?.groupValues?.getOrNull(0)
                     ?: it.epTitle
             val link = it.epLink
-            Episode(link, name)
+            newEpisode(link) {
+				this.name = name
+			}
         }.reversed()
 
         return newAnimeLoadResponse(title, url, TvType.Anime) {
