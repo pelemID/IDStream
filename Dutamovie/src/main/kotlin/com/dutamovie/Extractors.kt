@@ -4,11 +4,16 @@ import com.lagradost.cloudstream3.extractors.JWPlayer
 
 
 class Embedfirex : JWPlayer() {
-    override var name = "Embedfirex"
-    override var mainUrl = "https://embedfirex.xyz"
+    override var name = "embedpyrox"
+    override var mainUrl = "https://embedpyrox.xyz"
 }
 
-class Ryderjet : JWPlayer() {
-    override val name = "Ryderjet"
-    override val mainUrl = "https://ryderjet.com"
+class Embedfirex : JWPlayer() {
+    override var name = "helvid"
+    override var mainUrl = "https://helvid.net"
+}
+
+class Embedfirex : JWPlayer() {
+    override var name = "p2pplay"
+    override var mainUrl = "https://pm21.p2pplay.pro"
 }
