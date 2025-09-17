@@ -101,12 +101,12 @@ class Pusatfilm : MainAPI() {
                                         .find(name)
                                         ?.groupValues
                                         ?.get(1)
-                                Episode(
-                                    href,
-                                    name,
-                                    season = season?.toIntOrNull(),
-                                    episode = episode?.toIntOrNull(),
-                                )
+                                newEpisode(
+                                    href){
+                                    this.name = name
+                                    this.season = season?.toIntOrNull()
+                                    this.episode = episode?.toIntOrNull()
+                                }
                             }
                             .filter { it.episode != null }
                 }
