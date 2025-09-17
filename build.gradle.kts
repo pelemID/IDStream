@@ -61,8 +61,7 @@ subprojects {
                 freeCompilerArgs.addAll(
                     "-Xno-call-assertions",
                     "-Xno-param-assertions",
-                    "-Xno-receiver-assertions",
-                    "-Xreport-deprecated"
+                    "-Xno-receiver-assertions"
                 )
                 allWarningsAsErrors.set(false)
             }
