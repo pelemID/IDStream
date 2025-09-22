@@ -34,13 +34,10 @@ class DramaSerial : MainAPI() {
    
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = request.data.split("?")
-        val pageOne = page <= 1
-        val req = if (pageOne) {
-            app.get(request.data)
-        } else {
-            app.get("${url.first()}$page/?${url.lastOrNull()}")
-        }
+
+        req = app.get("${url.first()}$page/?${url.lastOrNull()}")
         mainUrl = getBaseUrl(req.url)
+
         val document = req.document
         val home = document.select("main#main article").mapNotNull {
             it.toSearchResult()
