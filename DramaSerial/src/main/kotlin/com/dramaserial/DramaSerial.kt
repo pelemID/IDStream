@@ -34,8 +34,8 @@ class DramaSerial : MainAPI() {
    
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = request.data.split("?")
-        val nonPaged = request.name == "Latest Movie" && page <= 1
-        val req = if (nonPaged) {
+        val pageOne = page <= 1
+        val req = if (pageOne) {
             app.get(request.data)
         } else {
             app.get("${url.first()}$page/?${url.lastOrNull()}")
@@ -48,13 +48,6 @@ class DramaSerial : MainAPI() {
         return newHomePageResponse(request.name, home)
     }
 
-        
-//        val document = app.get(request.data + page).document
-//        val home = document.select("main#main article").mapNotNull {
-//            it.toSearchResult()
-//        }
-//        return newHomePageResponse(request.name, home)
-//    }
 
     private fun Element.toSearchResult(): SearchResponse? {
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
