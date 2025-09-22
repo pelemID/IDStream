@@ -31,11 +31,7 @@ class DramaSerial : MainAPI() {
         "$mainUrl/Genre/drama-serial-india/page/" to "Drama Serial India",
     )
 
-    private fun getBaseUrl(url: String): String {
-        return URI(url).let {
-            "${it.scheme}://${it.host}"
-        }
-    }
+   
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = request.data.split("?")
         val nonPaged = request.name == "Latest Movie" && page <= 1
